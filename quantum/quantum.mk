@@ -1,7 +1,8 @@
 QUANTUM_DIR = quantum
 
 # # project specific files
-SRC += $(QUANTUM_DIR)/keymap_common.c \
+SRC += $(QUANTUM_DIR)/quantum.c \
+	$(QUANTUM_DIR)/keymap_common.c \
 	$(QUANTUM_DIR)/led.c
 
 # ifdef KEYMAP_FILE
@@ -23,19 +24,21 @@ ifndef CUSTOM_MATRIX
 	SRC += $(QUANTUM_DIR)/matrix.c
 endif
 
-ifdef MIDI_ENABLE
-	SRC += $(QUANTUM_DIR)/keymap_midi.c
+#ifeq ($(strip $(MIDI_ENABLE)), yes)
+#	SRC += $(QUANTUM_DIR)/keymap_midi.c
+#endif
+
+ifeq ($(strip $(AUDIO_ENABLE)), yes)
+    SRC += $(QUANTUM_DIR)/audio/audio.c
+    SRC += $(QUANTUM_DIR)/audio/voices.c
+    SRC += $(QUANTUM_DIR)/audio/luts.c
 endif
 
-ifdef AUDIO_ENABLE
-	SRC += $(QUANTUM_DIR)/audio.c
-endif
-
-ifdef UNICODE_ENABLE
+ifeq ($(strip $(UNICODE_ENABLE)), yes)
 	SRC += $(QUANTUM_DIR)/keymap_unicode.c
 endif
 
-ifdef RGBLIGHT_ENABLE
+ifeq ($(strip $(RGBLIGHT_ENABLE)), yes)
 	SRC += $(QUANTUM_DIR)/light_ws2812.c
 	SRC += $(QUANTUM_DIR)/rgblight.c
 	OPT_DEFS += -DRGBLIGHT_ENABLE
@@ -46,6 +49,8 @@ endif
 
 # Search Path
 VPATH += $(TOP_DIR)/$(QUANTUM_DIR)
+VPATH += $(TOP_DIR)/$(QUANTUM_DIR)/keymap_extras
+VPATH += $(TOP_DIR)/$(QUANTUM_DIR)/audio
 
 include $(TMK_DIR)/protocol/lufa.mk
 

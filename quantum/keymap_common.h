@@ -30,7 +30,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // #include "print.h"
 #include "debug.h"
 
-#ifdef BOOTMAGIC_ENABLE
 /* NOTE: Not portable. Bit field order depends on implementation */
 typedef union {
     uint16_t raw;
@@ -45,8 +44,6 @@ typedef union {
         bool nkro:1;
     };
 } keymap_config_t;
-keymap_config_t keymap_config;
-#endif
 
 
 /* translates key to keycode */
@@ -70,6 +67,9 @@ extern const uint16_t fn_actions[];
 #define MEH(kc) kc  | 0x0700
 #define LCAG(kc) kc  | 0x0D00 // Modifier Ctrl Alt and GUI
 
+#define MOD_HYPR 0xf
+#define MOD_MEH 0x7
+
 #define RCTL(kc) kc | 0x1100
 #define RSFT(kc) kc | 0x1200
 #define RALT(kc) kc | 0x1400
@@ -87,7 +87,10 @@ extern const uint16_t fn_actions[];
 #define KC_EXCLAIM  KC_EXLM
 
 #define KC_AT   LSFT(KC_2)      // @
+
+
 #define KC_HASH LSFT(KC_3)      // #
+
 
 #define KC_DLR  LSFT(KC_4)      // $
 #define KC_DOLLAR   KC_DLR
@@ -110,10 +113,12 @@ extern const uint16_t fn_actions[];
 #define KC_RPRN LSFT(KC_0)      // )
 #define KC_RIGHT_PAREN  KC_RPRN
 
+
 #define KC_UNDS LSFT(KC_MINS)   // _
 #define KC_UNDERSCORE   KC_UNDS
 
 #define KC_PLUS LSFT(KC_EQL)    // +
+
 
 #define KC_LCBR LSFT(KC_LBRC)   // {
 #define KC_LEFT_CURLY_BRACE KC_LCBR
@@ -121,10 +126,29 @@ extern const uint16_t fn_actions[];
 #define KC_RCBR LSFT(KC_RBRC)   // }
 #define KC_RIGHT_CURLY_BRACE    KC_RCBR
 
+#define KC_LABK LSFT(KC_COMM)   // <
+#define KC_LEFT_ANGLE_BRACKET   KC_LABK
+
+#define KC_RABK LSFT(KC_DOT)    // >
+#define KC_RIGHT_ANGLE_BRACKET  KC_RABK
+
 #define KC_COLN LSFT(KC_SCLN)   // :
 #define KC_COLON    KC_COLN
 
 #define KC_PIPE LSFT(KC_BSLS)   // |
+
+#define KC_LT LSFT(KC_COMM)     // <
+
+
+#define KC_GT LSFT(KC_DOT)      // >
+
+
+#define KC_QUES LSFT(KC_SLSH)   // ?
+#define KC_QUESTION KC_QUES
+
+
+#define KC_DQT LSFT(KC_QUOT)   // "
+#define KC_DOUBLE_QUOTE KC_DQT
 
 #define KC_DELT KC_DELETE // Del key (four letter code)
 
@@ -135,7 +159,7 @@ extern const uint16_t fn_actions[];
 #define S(kc) LSFT(kc)
 #define F(kc) FUNC(kc)
 
-#define M(kc) kc | 0x3000
+#define M(kc) (kc | 0x3000)
 
 #define MACRODOWN(...) (record->event.pressed ? MACRO(__VA_ARGS__) : MACRO_NONE)
 
@@ -167,6 +191,51 @@ extern const uint16_t fn_actions[];
 
 #define RESET 0x5000
 #define DEBUG 0x5001
+#define KC_LEAD 0x5014
+
+
+
+
+// MAGIC keycodes
+#define MAGIC_SWAP_CONTROL_CAPSLOCK      0x5002
+#define MAGIC_UNSWAP_CONTROL_CAPSLOCK    0x5003
+#define MAGIC_CAPSLOCK_TO_CONTROL        0x5004
+#define MAGIC_UNCAPSLOCK_TO_CONTROL      0x5005
+#define MAGIC_SWAP_LALT_LGUI             0x5006
+#define MAGIC_UNSWAP_LALT_LGUI           0x5007
+#define MAGIC_SWAP_RALT_RGUI             0x5008
+#define MAGIC_UNSWAP_RALT_RGUI           0x5009
+#define MAGIC_NO_GUI                     0x500a
+#define MAGIC_UNNO_GUI                   0x500b
+#define MAGIC_SWAP_GRAVE_ESC             0x500c
+#define MAGIC_UNSWAP_GRAVE_ESC           0x500d
+#define MAGIC_SWAP_BACKSLASH_BACKSPACE   0x500e
+#define MAGIC_UNSWAP_BACKSLASH_BACKSPACE 0x500f
+#define MAGIC_HOST_NKRO                  0x5010
+#define MAGIC_UNHOST_NKRO                0x5011
+#define MAGIC_SWAP_ALT_GUI               0x5012
+#define MAGIC_UNSWAP_ALT_GUI             0x5013
+
+#define AG_SWAP MAGIC_SWAP_ALT_GUI
+#define AG_NORM MAGIC_UNSWAP_ALT_GUI
+
+#define KC_LEAD 0x5014
+
+// Audio on/off
+#define AU_ON  0x5020
+#define AU_OFF 0x5021
+
+// Music mode on/off
+#define MU_ON  0x5022
+#define MU_OFF 0x5023
+
+// Music voice iterate
+#define MUV_IN 0x5024
+#define MUV_DE 0x5025
+
+// Midi mode on/off
+#define MI_ON  0x5026
+#define MI_OFF 0x5027
 
 // GOTO layer - 16 layers max
 // when:
@@ -184,6 +253,12 @@ extern const uint16_t fn_actions[];
 // Toggle to layer - 256 layer max
 #define TG(layer) (layer | 0x5400)
 
+// One-shot layer - 256 layer max
+#define OSL(layer) (layer | 0x5500)
+
+// One-shot mod
+#define OSM(layer) (layer | 0x5600)
+
 // M-od, T-ap - 256 keycode max
 #define MT(mod, kc) (kc | 0x7000 | ((mod & 0xF) << 8))
 #define CTL_T(kc) MT(0x1, kc)
@@ -192,7 +267,7 @@ extern const uint16_t fn_actions[];
 #define GUI_T(kc) MT(0x8, kc)
 #define C_S_T(kc) MT(0x3, kc) // Control + Shift e.g. for gnome-terminal
 #define MEH_T(kc) MT(0x7, kc) // Meh is a less hyper version of the Hyper key -- doesn't include Win or Cmd, so just alt+shift+ctrl
-#define LCAG_T(kc) MT(0xD, kc) // Left control alt and gui 
+#define LCAG_T(kc) MT(0xD, kc) // Left control alt and gui
 #define ALL_T(kc) MT(0xF, kc) // see http://brettterpstra.com/2012/12/08/a-useful-caps-lock-key/
 
 // Dedicated keycode versions for Hyper and Meh, if you want to use them as standalone keys rather than mod-tap
@@ -207,6 +282,11 @@ extern const uint16_t fn_actions[];
 // To have a key that sends out Œ, go UC(0x0152)
 #define UNICODE(n) (n | 0x8000)
 #define UC(n) UNICODE(n)
+
+// For tri-layer
+void update_tri_layer(uint8_t layer1, uint8_t layer2, uint8_t layer3);
+#define IS_LAYER_ON(layer)  (layer_state & (1UL << (layer)))
+#define IS_LAYER_OFF(layer) (~layer_state & (1UL << (layer)))
 
 
 #endif
