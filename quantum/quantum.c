@@ -1,4 +1,5 @@
 #include "quantum.h"
+#include "timer.h"
 
 __attribute__ ((weak))
 void matrix_init_kb(void) {}
@@ -12,16 +13,38 @@ bool process_action_kb(keyrecord_t *record) {
 }
 
 __attribute__ ((weak))
+bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
+  return process_record_user(keycode, record);
+}
+
+__attribute__ ((weak))
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+  return true;
+}
+
+__attribute__ ((weak))
 void leader_start(void) {}
 
 __attribute__ ((weak))
 void leader_end(void) {}
 
+uint8_t starting_note = 0x0C;
+int offset = 7;
+
+
 #ifdef AUDIO_ENABLE
-  uint8_t starting_note = 0x0C;
-  int offset = 7;
   bool music_activated = false;
-  float music_scale[][2] = SONG(MUSIC_SCALE_SOUND);
+
+// music sequencer
+static bool music_sequence_recording = false;
+static bool music_sequence_playing = false;
+static float music_sequence[16] = {0};
+static uint8_t music_sequence_count = 0;
+static uint8_t music_sequence_position = 0;
+
+static uint16_t music_sequence_timer = 0;
+static uint16_t music_sequence_interval = 100;
+
 #endif
 
 #ifdef MIDI_ENABLE
@@ -42,6 +65,12 @@ bool chording = false;
 uint8_t chord_keys[CHORDING_MAX] = {0};
 uint8_t chord_key_count = 0;
 uint8_t chord_key_down = 0;
+
+#ifdef UNICODE_ENABLE
+  static uint8_t input_mode;
+#endif
+
+static bool shift_interrupted[2] = {0, 0};
 
 bool keys_chord(uint8_t keys[]) {
   uint8_t keys_size = sizeof(keys)/sizeof(keys[0]);
@@ -65,14 +94,25 @@ bool keys_chord(uint8_t keys[]) {
   return (pass && (in == keys_size));
 }
 
-static bool music_sequence_recording = false;
-static bool music_sequence_playing = false;
-static float music_sequence[16] = {0};
-static uint8_t music_sequence_count = 0;
-static uint8_t music_sequence_position = 0;
+#ifdef UNICODE_ENABLE
 
-static uint16_t music_sequence_timer = 0;
-static uint16_t music_sequence_interval = 100;
+uint16_t hex_to_keycode(uint8_t hex)
+{
+  if (hex == 0x0) {
+    return KC_0;
+  } else if (hex < 0xA) {
+    return KC_1 + (hex - 0x1);
+  } else {
+    return KC_A + (hex - 0xA);
+  }
+}
+
+void set_unicode_mode(uint8_t os_target)
+{
+  input_mode = os_target;
+}
+
+#endif
 
 bool process_record_quantum(keyrecord_t *record) {
 
@@ -94,6 +134,9 @@ bool process_record_quantum(keyrecord_t *record) {
     keycode = keymap_key_to_keycode(layer_switch_get_layer(key), key);
   #endif
 
+  if (!process_record_kb(keycode, record))
+    return false;
+
     // This is how you use actions here
     // if (keycode == KC_LEAD) {
     //   action_t action;
@@ -105,7 +148,7 @@ bool process_record_quantum(keyrecord_t *record) {
   #ifdef MIDI_ENABLE
     if (keycode == MI_ON && record->event.pressed) {
       midi_activated = true;
-      PLAY_NOTE_ARRAY(music_scale, false, 0);
+      music_scale_user();
       return false;
     }
 
@@ -181,7 +224,6 @@ bool process_record_quantum(keyrecord_t *record) {
   #ifdef AUDIO_ENABLE
     if (keycode == AU_ON && record->event.pressed) {
       audio_on();
-      audio_on_callback();
       return false;
     }
 
@@ -190,31 +232,53 @@ bool process_record_quantum(keyrecord_t *record) {
       return false;
     }
 
-    if (keycode == MU_ON && record->event.pressed) {
-      music_activated = true;
-      PLAY_NOTE_ARRAY(music_scale, false, 0);
+    if (keycode == AU_TOG && record->event.pressed) {
+        if (is_audio_on())
+        {
+            audio_off();
+        }
+        else
+        {
+            audio_on();
+        }
       return false;
+    }
+
+    if (keycode == MU_ON && record->event.pressed) {
+        music_on();
+        return false;
     }
 
     if (keycode == MU_OFF && record->event.pressed) {
-      music_activated = false;
-      stop_all_notes();
-      return false;
+        music_off();
+        return false;
+    }
+
+    if (keycode == MU_TOG && record->event.pressed) {
+        if (music_activated)
+        {
+            music_off();
+        }
+        else
+        {
+            music_on();
+        }
+        return false;
     }
 
     if (keycode == MUV_IN && record->event.pressed) {
-      voice_iterate();
-      PLAY_NOTE_ARRAY(music_scale, false, 0);
-      return false;
+        voice_iterate();
+        music_scale_user();
+        return false;
     }
 
     if (keycode == MUV_DE && record->event.pressed) {
-      voice_deiterate();
-      PLAY_NOTE_ARRAY(music_scale, false, 0);
-      return false;
+        voice_deiterate();
+        music_scale_user();
+        return false;
     }
 
-    if (music_activated) {   
+    if (music_activated) {
 
       if (keycode == KC_LCTL && record->event.pressed) { // Start recording
         stop_all_notes();
@@ -223,12 +287,14 @@ bool process_record_quantum(keyrecord_t *record) {
         music_sequence_count = 0;
         return false;
       }
+    
       if (keycode == KC_LALT && record->event.pressed) { // Stop recording/playing
         stop_all_notes();
         music_sequence_recording = false;
         music_sequence_playing = false;
         return false;
       }
+    
       if (keycode == KC_LGUI && record->event.pressed) { // Start playing
         stop_all_notes();
         music_sequence_recording = false;
@@ -240,12 +306,13 @@ bool process_record_quantum(keyrecord_t *record) {
 
       if (keycode == KC_UP) {
         if (record->event.pressed)
-          music_sequence_interval-=10;
+            music_sequence_interval-=10;
         return false;
       }
+    
       if (keycode == KC_DOWN) {
         if (record->event.pressed)
-          music_sequence_interval+=10;
+            music_sequence_interval+=10;
         return false;
       }
 
@@ -258,7 +325,7 @@ bool process_record_quantum(keyrecord_t *record) {
         }
       } else {
         stop_note(freq);
-      }  
+      }
 
       if (keycode < 0xFF) // ignores all normal keycodes, but lets RAISE, LOWER, etc through
         return false;
@@ -325,9 +392,140 @@ bool process_record_quantum(keyrecord_t *record) {
 
 #endif
 
+#ifdef UNICODE_ENABLE
+
+  if (keycode > UNICODE(0) && record->event.pressed) {
+    uint16_t unicode = keycode & 0x7FFF;
+    switch(input_mode) {
+      case UC_OSX:
+        register_code(KC_LALT);
+        break;
+      case UC_LNX:
+        register_code(KC_LCTL);
+        register_code(KC_LSFT);
+        register_code(KC_U);
+        unregister_code(KC_U);
+        break;
+      case UC_WIN:
+        register_code(KC_LALT);
+        register_code(KC_PPLS);
+        unregister_code(KC_PPLS);
+        break;
+    }
+    for(int i = 3; i >= 0; i--) {
+        uint8_t digit = ((unicode >> (i*4)) & 0xF);
+        register_code(hex_to_keycode(digit));
+        unregister_code(hex_to_keycode(digit));
+    }
+    switch(input_mode) {
+      case UC_OSX:
+      case UC_WIN:
+        unregister_code(KC_LALT);
+        break;
+      case UC_LNX:
+        unregister_code(KC_LCTL);
+        unregister_code(KC_LSFT);
+        break;
+    }
+  }
+
+#endif
+
+  switch(keycode) {
+    case KC_LSPO: {
+                    if (record->event.pressed) {
+                      shift_interrupted[0] = false;
+                      register_mods(MOD_BIT(KC_LSFT));
+                    }
+                    else {
+                      if (!shift_interrupted[0]) {
+                        register_code(KC_9);
+                        unregister_code(KC_9);
+                      }
+                      unregister_mods(MOD_BIT(KC_LSFT));
+                    }
+                    return false;
+                    break;
+                  }
+
+    case KC_RSPC: {
+                    if (record->event.pressed) {
+                      shift_interrupted[1] = false;
+                      register_mods(MOD_BIT(KC_RSFT));
+                    }
+                    else {
+                      if (!shift_interrupted[1]) {
+                        register_code(KC_0);
+                        unregister_code(KC_0);
+                      }
+                      unregister_mods(MOD_BIT(KC_RSFT));
+                    }
+                    return false;
+                    break;
+                  }
+    default: {
+               shift_interrupted[0] = true;
+               shift_interrupted[1] = true;
+               break;
+             }
+  }
 
   return process_action_kb(record);
 }
+
+bool shift_us_qwerty[0x80] = {
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 0 - 31
+  0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1,  // 32 - 63
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1,  // 64 - 95
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0   // 96 - 127
+};
+
+uint8_t ascii_us_qwerty[0x80] = {
+  0, 0, 0, 0, 0, 0, 0, 0, KC_BSPC, KC_TAB, KC_ENT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, KC_ESC, 0, 0, 0, 0,  // 0 - 31
+  KC_SPC, KC_1, KC_QUOT, KC_3, KC_4, KC_5, KC_7, KC_QUOT, KC_9, KC_0, KC_8, KC_EQL, KC_COMM, KC_MINS, KC_DOT, // 32 - 46
+  KC_SLSH, KC_0, KC_1, KC_2, KC_3, KC_4, KC_5, KC_6, KC_7, KC_8, KC_9, KC_SCLN, KC_SCLN, KC_COMM, KC_EQL,     // 47 - 61
+  KC_DOT, KC_SLSH, KC_2, KC_A, KC_B, KC_C, KC_D, KC_E, KC_F, KC_G, KC_H, KC_I, KC_J, KC_K, KC_L, KC_M, KC_N,  // 62 - 78
+  KC_O, KC_P, KC_Q, KC_R, KC_S, KC_T, KC_U, KC_V, KC_W, KC_X, KC_Y, KC_Z, KC_LBRC, KC_BSLS, KC_RBRC, KC_6,    // 79 - 94
+  KC_MINS, KC_GRV, KC_A, KC_B, KC_C, KC_D, KC_E, KC_F, KC_G, KC_H, KC_I, KC_J, KC_K, KC_L, KC_M, KC_N, KC_O,  // 95 - 111
+  KC_P, KC_Q, KC_R, KC_S, KC_T, KC_U, KC_V, KC_W, KC_X, KC_Y, KC_Z, KC_LBRC, KC_BSLS, KC_RBRC, KC_GRV, KC_DEL // 112 - 127
+};
+
+// This is how you'd add OS colemak support
+
+// bool shift_us_colemak[0x80] = {
+//   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // 0 - 31
+//   0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1,  // 32 - 63
+//   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1,  // 64 - 95
+//   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0   // 96 - 127
+// };
+
+// #include "keymap_colemak.h"
+
+// uint8_t ascii_us_colemak[0x80] = {
+//   0, 0, 0, 0, 0, 0, 0, 0, KC_BSPC, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, KC_ESC, 0, 0, 0, 0,  // 0 - 31
+//   KC_SPC, KC_1, KC_QUOT, KC_3, KC_4, KC_5, KC_7, KC_QUOT, KC_9, KC_0, KC_8, KC_EQL, KC_COMM, KC_MINS, KC_DOT, // 32 - 46
+//   KC_SLSH, KC_0, KC_1, KC_2, KC_3, KC_4, KC_5, KC_6, KC_7, KC_8, KC_9, CM_SCLN, CM_SCLN, KC_COMM, KC_EQL,     // 47 - 61
+//   KC_DOT, KC_SLSH, KC_2, CM_A, CM_B, CM_C, CM_D, CM_E, CM_F, CM_G, CM_H, CM_I, CM_J, CM_K, CM_L, CM_M, CM_N,  // 62 - 78
+//   CM_O, CM_P, CM_Q, CM_R, CM_S, CM_T, CM_U, CM_V, CM_W, CM_X, CM_Y, CM_Z, KC_LBRC, KC_BSLS, KC_RBRC, KC_6,    // 79 - 94
+//   KC_MINS, KC_GRV, CM_A, CM_B, CM_C, CM_D, CM_E, CM_F, CM_G, CM_H, CM_I, CM_J, CM_K, CM_L, CM_M, CM_N, CM_O,  // 95 - 111
+//   CM_P, CM_Q, CM_R, CM_S, CM_T, CM_U, CM_V, CM_W, CM_X, CM_Y, CM_Z, KC_LBRC, KC_BSLS, KC_RBRC, KC_GRV, KC_DEL // 112 - 127
+// };
+
+void send_string(char str[]) {
+  for (int i = 0; str[i] != 0; i++) {
+    uint8_t keycode = ascii_us_qwerty[str[i]];
+    if (shift_us_qwerty[str[i]]) {
+      register_code(KC_LSFT);
+      register_code(keycode);
+      unregister_code(keycode);
+      unregister_code(KC_LSFT);
+    } else {
+      register_code(keycode);
+      unregister_code(keycode);
+    }
+  }
+}
+
 
 void matrix_init_quantum() {
   matrix_init_kb();
@@ -348,3 +546,48 @@ void matrix_scan_quantum() {
 
   matrix_scan_kb();
 }
+#ifdef AUDIO_ENABLE
+  bool is_music_on(void) {
+      return (music_activated != 0);
+  }
+
+  void music_toggle(void) {
+      if (!music_activated) {
+          music_on();
+      } else {
+          music_off();
+      }
+  }
+
+  void music_on(void) {
+      music_activated = 1;
+      music_on_user();
+  }
+
+  void music_off(void) {
+      music_activated = 0;
+      stop_all_notes();
+  }
+
+#endif
+
+//------------------------------------------------------------------------------
+// Override these functions in your keymap file to play different tunes on 
+// different events such as startup and bootloader jump
+
+__attribute__ ((weak))
+void startup_user() {}
+
+__attribute__ ((weak))
+void shutdown_user() {}
+
+__attribute__ ((weak))
+void music_on_user() {}
+
+__attribute__ ((weak))
+void audio_on_user() {}
+
+__attribute__ ((weak))
+void music_scale_user() {}
+
+//------------------------------------------------------------------------------

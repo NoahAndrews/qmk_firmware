@@ -1,5 +1,9 @@
 QUANTUM_DIR = quantum
 
+ifndef VERBOSE
+.SILENT:
+endif
+
 # # project specific files
 SRC += $(QUANTUM_DIR)/quantum.c \
 	$(QUANTUM_DIR)/keymap_common.c \
@@ -32,10 +36,6 @@ ifeq ($(strip $(AUDIO_ENABLE)), yes)
     SRC += $(QUANTUM_DIR)/audio/audio.c
     SRC += $(QUANTUM_DIR)/audio/voices.c
     SRC += $(QUANTUM_DIR)/audio/luts.c
-endif
-
-ifeq ($(strip $(UNICODE_ENABLE)), yes)
-	SRC += $(QUANTUM_DIR)/keymap_unicode.c
 endif
 
 ifeq ($(strip $(RGBLIGHT_ENABLE)), yes)
