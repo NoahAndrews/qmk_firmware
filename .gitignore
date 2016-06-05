@@ -4,6 +4,7 @@ keyboard/planck/dfu-programmer.exe
 *.eep
 *.elf
 *.hex
+*.log
 *.lss
 *.lst
 *.map
