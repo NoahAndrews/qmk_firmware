@@ -5,15 +5,31 @@ CD %~dp0
 
 SET STARTINGDIR=%CD%
 SET LOGDIR=%CD%\log\2-setup-environment-win
+SET ALREADYRUN=0
+
+MKDIR %LOGDIR% 2> NUL
+
+DEL %LOGDIR%\main.log > NUL 2>&1
+DEL %LOGDIR%\elevate.log > NUL 2>&1
+
+:: Credit for this if statement goes to David Ruhmann http://stackoverflow.com/a/17413749/4651874
+IF "%~1" == "self" ( 
+	SET ALREADYRUN=1
+)
 
 :: Check for admin privilages
-SETX /M test test > nul 2>&1
-IF NOT ["%ERRORLEVEL%"]==["0"] (
-	ELEVATE -wait 2-setup-environment-win.bat & goto :EOF
-) 
-MKDIR %LOGDIR% 2> NUL
-DEL %LOGDIR%\main.log > NUL 2>&1
-
+:: Only rerun the script with elevate if we haven't already done so.
+SETX /M test test >> %LOGDIR%\main.log 2>&1
+IF %ERRORLEVEL% NEQ 0 (
+	IF "!ALREADYRUN!" == "0" (
+		ELEVATE -wait 2-setup-environment-win.bat self > %LOGDIR%\elevate.log 2>&1
+		goto :EOF
+	) ELSE (
+		ECHO Please rerun the script and say yes to the User Account Control popup.
+		PAUSE
+		GOTO :EOF
+	)
+)
 
 :: Make sure path to MinGW exists - if so, CD to it
 SET MINGWPATH="C:\MinGW\bin"
@@ -27,6 +43,7 @@ ECHO ------------------------------------------
 ECHO.
 mingw-get install msys-wget-bin msys-unzip-bin 
 
+RMDIR temp /S /Q
 MKDIR temp
 CD temp
 
