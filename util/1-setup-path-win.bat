@@ -12,7 +12,12 @@ ELEVATE -wait add-paths.bat >> script1.log 2>&1
 IF ERRORLEVEL 1 (
 	ECHO You denied admin access. Rerun the script, and be sure to press the yes button this time.
 ) ELSE (
-	TYPE add-paths.log 2> NUL
+	IF EXIST %LOGDIR%\add-paths.log (
+		TYPE %LOGDIR%\add-paths.log
+		DEL %LOGDIR%\add-paths.log
+	) ELSE (
+		ECHO add-paths.bat did not run properly. Make a new post at reddit.com/r/olkb to get help.
+	)
 )
 ECHO.
 
