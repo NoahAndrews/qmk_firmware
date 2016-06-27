@@ -4,15 +4,16 @@
 CD %~dp0
 
 SET STARTINGDIR=%CD%
-echo %STARTINGDIR%
+SET LOGDIR=%CD%\log\2-setup-environment-win
 
 :: Check for admin privilages
 SETX /M test test > nul 2>&1
 IF NOT ["%ERRORLEVEL%"]==["0"] (
 	ELEVATE -wait 2-setup-environment-win.bat & goto :EOF
 ) 
+MKDIR %LOGDIR% 2> NUL
+DEL %LOGDIR%\main.log > NUL 2>&1
 
-DEL %STARTINGDIR%\environment-setup.log
 
 :: Make sure path to MinGW exists - if so, CD to it
 SET MINGWPATH="C:\MinGW\bin"
@@ -34,16 +35,16 @@ ECHO ------------------------------------------
 ECHO Installing dfu-programmer.
 ECHO ------------------------------------------
 ECHO.
-wget 'http://downloads.sourceforge.net/project/dfu-programmer/dfu-programmer/0.7.2/dfu-programmer-win-0.7.2.zip' >> %STARTINGDIR%\environment-setup.log
-unzip -o dfu-programmer-win-0.7.2.zip >> %STARTINGDIR%\environment-setup.log
-COPY dfu-programmer.exe .. >> %STARTINGDIR%\environment-setup.log
+wget 'http://downloads.sourceforge.net/project/dfu-programmer/dfu-programmer/0.7.2/dfu-programmer-win-0.7.2.zip' >> %LOGDIR%\main.log
+unzip -o dfu-programmer-win-0.7.2.zip >> %LOGDIR%\main.log
+COPY dfu-programmer.exe .. >> %LOGDIR%\main.log
 
 ECHO ------------------------------------------
 ECHO Downloading driver
 ECHO ------------------------------------------
-wget http://downloads.sourceforge.net/project/libusb-win32/libusb-win32-releases/1.2.6.0/libusb-win32-bin-1.2.6.0.zip >> %STARTINGDIR%\environment-setup.log
-unzip -o libusb-win32-bin-1.2.6.0.zip >> %STARTINGDIR%\environment-setup.log
-COPY libusb-win32-bin-1.2.6.0\bin\x86\libusb0_x86.dll ../libusb0.dll >> %STARTINGDIR%\environment-setup.log
+wget http://downloads.sourceforge.net/project/libusb-win32/libusb-win32-releases/1.2.6.0/libusb-win32-bin-1.2.6.0.zip >> %LOGDIR%\main.log
+unzip -o libusb-win32-bin-1.2.6.0.zip >> %LOGDIR%\main.log
+COPY libusb-win32-bin-1.2.6.0\bin\x86\libusb0_x86.dll ../libusb0.dll >> %LOGDIR%\main.log
 
 ECHO.
 ECHO ------------------------------------------

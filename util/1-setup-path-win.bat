@@ -2,12 +2,15 @@
 @ECHO OFF
 SET CMDLINERUNSTR=%SystemRoot%\system32\cmd.exe
 
-DEL script1.log > NUL 2>&1
-DEL add-paths.log > NUL 2>&1
-DEL add-paths-detail.log > NUL 2>&1
+SET LOGDIR=%CD%\log\1-setup-path-win
+MKDIR %LOGDIR% 2> NUL
+
+DEL %LOGDIR%\path-setup.log > NUL 2>&1
+DEL %LOGDIR%\add-paths.log > NUL 2>&1
+DEL %LOGDIR%\add-paths-detail.log > NUL 2>&1
 DEL UPDATE > NUL 2>&1
 
-ELEVATE -wait add-paths.bat >> script1.log 2>&1
+ELEVATE -wait add-paths.bat >> %LOGDIR%\path-setup.log 2>&1
 
 IF ERRORLEVEL 1 (
 	ECHO You denied admin access. Rerun the script, and be sure to press the yes button this time.
