@@ -2,12 +2,13 @@ ifndef VERBOSE
 .SILENT:
 endif
 
-starting_makefile := $(abspath $(firstword $(MAKEFILE_LIST)))
-mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
+space := $(subst ,, )
+starting_makefile := $(subst $(space),_SPACE_,$(abspath $(firstword $(MAKEFILE_LIST))))
+mkfile_path := $(subst $(space),_SPACE_,$(abspath $(lastword $(MAKEFILE_LIST))))
 abs_tmk_root := $(patsubst %/,%,$(dir $(mkfile_path)))
 
-ifneq (,$(findstring /keyboard/,$(starting_makefile)))
-	possible_keyboard:=$(patsubst %/,%,$(dir $(patsubst $(abs_tmk_root)/keyboard/%,%,$(starting_makefile))))
+ifneq (,$(findstring /keyboards/,$(starting_makefile)))
+	possible_keyboard:=$(patsubst %/,%,$(dir $(patsubst $(abs_tmk_root)/keyboards/%,%,$(starting_makefile))))
 	ifneq (,$(findstring /keymaps/,$(possible_keyboard)))
 		KEYBOARD_DIR:=$(firstword $(subst /keymaps/, ,$(possible_keyboard)))
 		KEYMAP_DIR:=$(lastword $(subst /keymaps/, ,$(possible_keyboard)))
@@ -40,9 +41,9 @@ endif
 ifndef KEYBOARD
 	KEYBOARD=planck
 endif
-KEYBOARD_PATH = $(TOP_DIR)/keyboard/$(KEYBOARD)
+KEYBOARD_PATH = $(TOP_DIR)/keyboards/$(KEYBOARD)
 ifneq ("$(wildcard $(KEYBOARD_PATH)/$(KEYBOARD).c)","")
-	KEYBOARD_FILE = keyboard/$(KEYBOARD)/$(KEYBOARD).c
+	KEYBOARD_FILE = keyboards/$(KEYBOARD)/$(KEYBOARD).c
 	ifndef ARCH
 		include $(KEYBOARD_PATH)/Makefile
 	endif
@@ -61,13 +62,13 @@ ifndef KEYMAP
 endif
 KEYMAP_PATH = $(KEYBOARD_PATH)/keymaps/$(KEYMAP)
 ifneq ("$(wildcard $(KEYMAP_PATH)/keymap.c)","")
-	KEYMAP_FILE = keyboard/$(KEYBOARD)/keymaps/$(KEYMAP)/keymap.c
+	KEYMAP_FILE = keyboards/$(KEYBOARD)/keymaps/$(KEYMAP)/keymap.c
 	-include $(KEYMAP_PATH)/Makefile
 else 
 $(error "$(KEYMAP_PATH)/keymap.c" does not exist)
 endif
 
-TARGET = $(KEYBOARD)_$(KEYMAP)
+TARGET ?= $(KEYBOARD)_$(KEYMAP)
 
 ifneq ("$(wildcard $(KEYMAP_PATH)/config.h)","")
 	CONFIG_H = $(KEYMAP_PATH)/config.h
@@ -79,8 +80,8 @@ endif
 SRC += $(KEYBOARD_FILE) \
 	$(KEYMAP_FILE) \
 	$(QUANTUM_DIR)/quantum.c \
-	$(QUANTUM_DIR)/keymap_common.c \
-	$(QUANTUM_DIR)/led.c
+	$(QUANTUM_DIR)/keymap.c \
+	$(QUANTUM_DIR)/keycode_config.c
 
 ifndef CUSTOM_MATRIX
 	SRC += $(QUANTUM_DIR)/matrix.c
@@ -113,3 +114,8 @@ VPATH += $(QUANTUM_PATH)/audio
 include $(TMK_PATH)/protocol/lufa.mk
 include $(TMK_PATH)/common.mk
 include $(TMK_PATH)/rules.mk
+
+GIT_VERSION := $(shell git describe --abbrev=6 --dirty --always --tags 2>/dev/null || date +"%Y-%m-%d-%H:%M:%S")
+BUILD_DATE := $(shell date +"%Y-%m-%d-%H:%M:%S")
+OPT_DEFS += -DQMK_KEYBOARD=\"$(KEYBOARD)\" -DQMK_KEYMAP=\"$(KEYMAP)\"
+OPT_DEFS += -DQMK_VERSION=\"$(GIT_VERSION)\" -DQMK_BUILDDATE=\"$(BUILD_DATE)\"
