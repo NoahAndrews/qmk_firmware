@@ -13,7 +13,10 @@ DEL UPDATE > NUL 2>&1
 ELEVATE -wait add-paths.bat >> %LOGDIR%\path-setup.log 2>&1
 
 IF ERRORLEVEL 1 (
-	ECHO You denied admin access. Rerun the script, and be sure to press the yes button this time.
+	ECHO.
+	ECHO Something went wrong when obtaining admin access. Rerun the script, and be sure to press the yes button this time.
+	ECHO.
+	ECHO If that doesn't work, make a new post at reddit.com/r/olkb and include the contents of the files in log/1-setup-path-win
 ) ELSE (
 	IF EXIST %LOGDIR%\add-paths.log (
 		TYPE %LOGDIR%\add-paths.log
