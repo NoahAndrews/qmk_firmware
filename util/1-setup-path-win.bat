@@ -16,7 +16,7 @@ IF ERRORLEVEL 1 (
 	ECHO.
 	ECHO Something went wrong when obtaining admin access. Rerun the script, and be sure to press the yes button this time.
 	ECHO.
-	ECHO If that doesn't work, make a new post at reddit.com/r/olkb and include the contents of the files in log/1-setup-path-win
+	ECHO If that doesn't work, make a new post at reddit.com/r/olkb and include the contents of the files in log\1-setup-path-win\
 ) ELSE (
 	IF EXIST %LOGDIR%\add-paths.log (
 		TYPE %LOGDIR%\add-paths.log
