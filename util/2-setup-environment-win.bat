@@ -11,6 +11,7 @@ MKDIR %LOGDIR% 2> NUL
 
 DEL %LOGDIR%\main.log > NUL 2>&1
 DEL %LOGDIR%\elevate.log > NUL 2>&1
+DEL %LOGDIR%\environment-setup.log > NUL 2>&1
 
 :: Credit for this if statement goes to David Ruhmann http://stackoverflow.com/a/17413749/4651874
 IF "%~1" == "self" ( 
@@ -30,8 +31,6 @@ IF %ERRORLEVEL% NEQ 0 (
 		GOTO :EOF
 	)
 )
-
-DEL %STARTINGDIR%\environment-setup.log
 
 :: Make sure path to MinGW exists - if so, CD to it
 SET MINGWPATH="C:\MinGW\bin"
@@ -54,33 +53,24 @@ ECHO ------------------------------------------
 ECHO Installing dfu-programmer.
 ECHO ------------------------------------------
 ECHO.
-<<<<<<< HEAD
+
 wget 'http://downloads.sourceforge.net/project/dfu-programmer/dfu-programmer/0.7.2/dfu-programmer-win-0.7.2.zip' >> %LOGDIR%\main.log
 unzip -o dfu-programmer-win-0.7.2.zip >> %LOGDIR%\main.log
 COPY dfu-programmer.exe .. >> %LOGDIR%\main.log
-=======
-wget 'http://downloads.sourceforge.net/project/dfu-programmer/dfu-programmer/0.7.2/dfu-programmer-win-0.7.2.zip' >> %STARTINGDIR%\environment-setup.log
-unzip -o dfu-programmer-win-0.7.2.zip >> %STARTINGDIR%\environment-setup.log
-COPY dfu-programmer.exe .. >> %STARTINGDIR%\environment-setup.log
->>>>>>> 9ecf9073b96799e52a1f1c0d35b57177382902ce
 
 ECHO ------------------------------------------
 ECHO Downloading driver
 ECHO ------------------------------------------
-<<<<<<< HEAD
+
 wget http://downloads.sourceforge.net/project/libusb-win32/libusb-win32-releases/1.2.6.0/libusb-win32-bin-1.2.6.0.zip >> %LOGDIR%\main.log
 unzip -o libusb-win32-bin-1.2.6.0.zip >> %LOGDIR%\main.log
 COPY libusb-win32-bin-1.2.6.0\bin\x86\libusb0_x86.dll ../libusb0.dll >> %LOGDIR%\main.log
-=======
-wget http://downloads.sourceforge.net/project/libusb-win32/libusb-win32-releases/1.2.6.0/libusb-win32-bin-1.2.6.0.zip >> %STARTINGDIR%\environment-setup.log
-unzip -o libusb-win32-bin-1.2.6.0.zip >> %STARTINGDIR%\environment-setup.log
-COPY libusb-win32-bin-1.2.6.0\bin\x86\libusb0_x86.dll ../libusb0.dll >> %STARTINGDIR%\environment-setup.log
->>>>>>> 9ecf9073b96799e52a1f1c0d35b57177382902ce
 
 ECHO.
 ECHO ------------------------------------------
 ECHO Installing driver. Accept prompt.
 ECHO ------------------------------------------
+ECHO.
 ECHO.
 IF EXIST "%WinDir%\System32\PnPUtil.exe" (%WinDir%\System32\PnPUtil.exe -i -a dfu-prog-usb-1.2.2\atmel_usb_dfu.inf && GOTO PNPUTILFOUND)
 IF EXIST "%WinDir%\Sysnative\PnPUtil.exe" (%WinDir%\Sysnative\PnPUtil.exe -i -a dfu-prog-usb-1.2.2\atmel_usb_dfu.inf && GOTO PNPUTILFOUND)
