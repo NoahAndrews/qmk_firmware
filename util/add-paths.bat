@@ -7,11 +7,17 @@ SET LOGDIR=%CD%\log\1-setup-path-win
 
 SET NEWPATH1="C:\MinGW\msys\1.0\bin"
 SET NEWPATH2="C:\MinGW\bin"
+SET NEWPATH3="C:\Program Files (x86)\MHV AVR Tools\bin"
+SET NEWPATH4="C:\Windows"
+SET NEWPATH5="C:\Windows\system32"
 
 ECHO. > %LOGDIR%\add-paths.log
 
 CALL :AddPath %NEWPATH1%
 CALL :AddPath %NEWPATH2%
+CALL :AddPath %NEWPATH3%
+CALL :AddPath %NEWPATH4%
+CALL :AddPath %NEWPATH5%
 
 EXIT /b
 
