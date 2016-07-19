@@ -23,7 +23,8 @@ IF "%~1" == "self" (
 SETX /M test test >> %LOGDIR%\main.log 2>&1
 IF %ERRORLEVEL% NEQ 0 (
 	IF "!ALREADYRUN!" == "0" (
-		ELEVATE -wait 2-setup-environment-win.bat self > %LOGDIR%\elevate.log 2>&1
+		ECHO Running elevate >> %LOGDIR%\elevate.log
+		ELEVATE -wait 2-setup-environment-win.bat self >> %LOGDIR%\elevate.log 2>&1
 		goto :EOF
 	) ELSE (
 		ECHO Please rerun the script and say yes to the User Account Control popup.
