@@ -17,14 +17,13 @@ What makes OLKB keyboards shine is a combo of lean aesthetics, compact size, and
 
 Made in Taiwan using advanced robotic manufacturing, the ErgoDox EZ is a fully-assembled, premium ergonomic keyboard. Its split design allows you to place both halves shoulder width, and its custom-made wrist rests and tilt/tent kit make for incredibly comfortable typing. Available on [ergodox-ez.com](https://ergodox-ez.com).
 
-* [ErgoDox EZ](/keyboards/ergodox_ez/) - Our one and only product. Yes, it's that awesome. Comes with either printed or blank keycaps, and 7 different keyswitch types.
+* [ErgoDox EZ](/keyboards/ergodox/) - Our one and only product. Yes, it's that awesome. Comes with either printed or blank keycaps, and 7 different keyswitch types.
 
 ### Clueboard - Zach White
 
 Designed and built in Felton, CA, Clueboards keyboard emphasize quality and locally sourced components, available on [clueboard.co](http://clueboard.co)
 
-* [Clueboard rev.1](/keyboards/clueboard1/) - The old Clueboard.
-* [Clueboard rev.2](/keyboards/clueboard2/) - New and improved! The Clueboard, revision 2.
+* [Clueboard](/keyboards/clueboard/) - The 66% custom keyboard.
 * [Cluepad](/keyboards/cluepad/) - A mechanical numpad with QMK superpowers.
 
 
