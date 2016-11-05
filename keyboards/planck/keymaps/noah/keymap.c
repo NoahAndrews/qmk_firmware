@@ -52,6 +52,10 @@ const uint16_t PROGMEM fn_actions[] = {
 
 };
 
+void matrix_init_user(void) {
+	
+}
+
 const macro_t *action_get_macro(keyrecord_t *record, uint8_t id, uint8_t opt)
 {
   // MACRODOWN only works in this function
