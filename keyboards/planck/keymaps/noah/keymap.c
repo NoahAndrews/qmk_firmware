@@ -23,11 +23,12 @@
 enum custom_keycodes {
 	QWERTY = SAFE_RANGE, //start the enum numbering at the end of the enum for built-in keycodes
 	QWERTYM,			// Mac optimized QWERTY layout
-	MOUSPACE,			// Tap for space, hold for mouse keys
 	RAISE,				// Raise layer
 	LOWER,				// Lower layer
 	BACKLIT				// Step through backlight levels
 };
+
+#define MOUSPACE LT(_MOUSEKEYS, KC_SPACE) // Tap for space, hold for mouse keys
 
 // Fillers to make layering more clear
 #define _______ KC_TRNS
@@ -131,7 +132,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  */
 [_ADJUST] = {
   {_______, RESET,   _______, _______, _______, _______, _______, _______, _______, _______, _______, _______},
-  {_______, _______, _______, AU_ON,   AU_OFF,  AG_NORM, AG_SWAP, QWERTY,  QWERTYM, _______, _______, _______},
+  {_______, _______, _______, AU_ON,   AU_OFF,  _______, _______, QWERTY,  QWERTYM, _______, _______, _______},
   {_______, MUV_DE,  MUV_IN,  MU_ON,   MU_OFF,  MI_ON,   MI_OFF,  _______, _______, _______, _______, _______},
   {_______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______}
 }
@@ -171,15 +172,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 					PLAY_NOTE_ARRAY(tone_colemak, false, 0);
 				#endif
 				persistant_default_layer_set(1UL<<_QWERTY_MAC);
-			}
-			return false;
-			break;
-		  
-		case MOUSPACE:
-			if(record->event.pressed) {
-				layer_on(_MOUSEKEYS);
-			} else {
-				layer_off(_MOUSEKEYS);
 			}
 			return false;
 			break;
