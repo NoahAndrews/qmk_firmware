@@ -25,7 +25,10 @@ enum custom_keycodes {
 	QWERTYM,			// Mac optimized QWERTY layout
 	RAISE,				// Raise layer
 	LOWER,				// Lower layer
-	BACKLIT				// Step through backlight levels
+	BACKLIT,			// Step through backlight levels
+	BREATHE,			// Toggle backlight breathing
+	BRE_DE,				// Decrease breathing speed
+	BRE_IN				// Increase breathing speed
 };
 
 #define MOUSPACE LT(_MOUSEKEYS, KC_SPACE) // Tap for space, hold for mouse keys
@@ -98,7 +101,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   {KC_GRV,  KC_1,    KC_2,    KC_3,    KC_4,    KC_5,    KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    KC_DEL},
   {_______, KC_F1,   KC_F2,   KC_F3,   KC_F4,   KC_F5,   KC_F6,   KC_MINS, KC_EQL,  KC_LBRC, KC_RBRC, KC_BSLS},
   {_______, KC_F7,   KC_F8,   KC_F9,   KC_F10,  KC_F11,  KC_F12,  KC_MPRV, _______, _______, _______, _______},
-  {_______, _______, _______, _______, _______, _______, _______, _______, KC_MNXT, KC_VOLD, KC_VOLU, KC_MPLY}
+  {BREATHE, _______, _______, _______, _______, _______, _______, _______, KC_MNXT, KC_VOLD, KC_VOLU, KC_MPLY}
 },
 
 /* Lower
@@ -125,7 +128,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  * |------+------+------+------+------+-------------+------+------+------+------+------|
  * |      |      |      |Aud on|Audoff|      |      |Qwerty| Mac  |      |      |      |
  * |------+------+------+------+------+------|------+------+------+------+------+------|
- * |      |Voice-|Voice+|Mus on|Musoff|MIDIon|MIDIof|      |      |      |      |      |
+ * |      |Voice-|Voice+|Mus on|Musoff|MIDIon|MIDIof|Breat-|Breat+|      |      |      |
  * |------+------+------+------+------+------+------+------+------+------+------+------|
  * |      |      |      |      |      |             |      |      |      |      |      |
  * `-----------------------------------------------------------------------------------'
@@ -133,7 +136,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 [_ADJUST] = {
   {_______, RESET,   _______, _______, _______, _______, _______, _______, _______, _______, _______, _______},
   {_______, _______, _______, AU_ON,   AU_OFF,  _______, _______, QWERTY,  QWERTYM, _______, _______, _______},
-  {_______, MUV_DE,  MUV_IN,  MU_ON,   MU_OFF,  MI_ON,   MI_OFF,  _______, _______, _______, _______, _______},
+  {_______, MUV_DE,  MUV_IN,  MU_ON,   MU_OFF,  MI_ON,   MI_OFF,  BRE_DE,  BRE_IN,  _______, _______, _______},
   {_______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______}
 }
 
@@ -203,6 +206,27 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 				#ifdef BACKLIGHT_ENABLE
 					backlight_step();
 				#endif
+			}
+			return false;
+			break;
+			
+		case BREATHE:
+			if(record->event.pressed) {
+				breathing_toggle();
+			}
+			return false;
+			break;
+			
+		case BRE_DE:
+			if(record->event.pressed) {
+				breathing_speed_dec(1);
+			}
+			return false;
+			break;
+		
+		case BRE_IN:
+			if(record->event.pressed) {
+				breathing_speed_inc(1);
 			}
 			return false;
 			break;
